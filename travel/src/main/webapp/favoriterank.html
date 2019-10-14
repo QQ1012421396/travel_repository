@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>收藏排行榜</title>
+        <link rel="stylesheet" type="text/css" href="css/common.css">
+        <link rel="stylesheet" type="text/css" href="css/ranking-list.css">
+        <script src="js/jquery-3.3.1.js"></script>
+        <script src="js/getParameter.js"></script>
+        <script>
+
+            //jQuery入口函数，待dom文档加载完成后，执行函数体中的内容
+            $(function () {
+                //第一次加载页面时，分页查询收藏排行榜
+                favoriteRankByPage(1, null, null, null);
+
+                //为“搜索”按钮添加单击事件
+                $("#search_id").click(function () {
+                    //获取输入框中输入的值:rname
+                    var rname = $("#rname_id").val();
+                    //获取输入框中输入的值:lowerPrice
+                    var lowerPrice = $("#lowerPrice_id").val();
+                    if(lowerPrice == ""){
+                        lowerPrice == 0;
+                    }
+                    //获取输入框中输入的值:upperPrice
+                    var upperPrice = $("#upperPrice_id").val();
+                    if(upperPrice == ""){
+                        upperPrice == 0;
+                    }
+                    favoriteRankByPage(1, rname, lowerPrice, upperPrice);
+                });
+            });
+
+            function favoriteRankByPage(currentPage, rname, lowerPrice, upperPrice) {
+                /**
+                 * 发送ajax请求加载数据，分页查询收藏数量>0的旅游线路，进入收藏排行榜
+                 */
+                $.post("route/favoriteRankByPage", {"currentPage":currentPage, "rname":rname, "lowerPrice":lowerPrice, "upperPrice":upperPrice}, function (data) {
+                    //1.收藏排行榜数据显示
+                    var favoriteRank = "";
+                    for(var i=0; i<data.dataList.length; i++){
+                        favoriteRank +=
+                            '<li>\n' +
+                            '<span class="num" id="num'+((data.currentPage-1)*data.pageSize+(i+1))+'">'+((data.currentPage-1)*data.pageSize+(i+1))+'</span>\n' +
+                            '<a href="route_detail.html?rid='+data.dataList[i].rid+'"><img src="'+data.dataList[i].rimage+'" alt=""></a>\n' +
+                            '<h4><a href="route_detail.html?rid='+data.dataList[i].rid+'">'+data.dataList[i].rname+'</a></h4>\n' +
+                            '<p>\n' +
+                            '<b class="price">&yen;<span>'+data.dataList[i].price+'</span>起</b>\n' +
+                            '<span class="shouchang">已收藏'+data.dataList[i].count+'次</span>\n' +
+                            '</p>\n' +
+                            '</li>';
+
+                    }
+                    $("#favoriteRank").html(favoriteRank);
+                    //第一页的第1名和第2名加特殊样式
+                    if(data.currentPage==1 && data.dataList.length>=1){
+                        $("#num1").addClass("one");
+                    }
+                    if(data.currentPage==1 && data.dataList.length>=2){
+                        $("#num2").addClass("two");
+                    }
+
+                    //2. 分页工具条数据展示
+                    //2.1 展示总页数
+                    $("#totalPage").html(data.totalPage);
+                    //2.2 展示总记录数
+                    $("#totalCount").html(data.totalCount);
+                    //2.3 展示分页页码
+                    var startPage;
+                    var endPage;
+                    if(data.totalPage <=10 && data.totalPage > 0){
+                        startPage = 1;
+                        endPage = data.totalPage;
+                    }else if(data.totalPage > 10){
+                        startPage = data.currentPage - 4;
+                        endPage = data.currentPage + 5;
+                        if(startPage < 1){
+                            startPage = 1;
+                            endPage = 10;
+                        }
+                        if(endPage > data.totalPage){
+                            startPage = data.totalPage - 9;
+                            endPage = data.totalPage;
+                        }
+                    }
+                    //有数据的时候才展示分页条
+                    if(data.totalCount > 0){
+                        var pageNum =
+                            '<li onclick="favoriteRankByPage(1, \''+rname+'\', \''+lowerPrice+'\',\''+ upperPrice+'\')"><a href="javascript:;">首页</a></li>' +
+                            '<li class="threeword" onclick="favoriteRankByPage(' +((data.currentPage-1)>=1?(data.currentPage-1):1) + ',\'' + rname +'\',\''+lowerPrice+'\',\''+upperPrice+'\')"><a href="#">上一页</a></li>';/*注意rname用引号包围成字符串*/
+
+                        for(var i= startPage; i<=endPage; i++){
+                            if(data.currentPage == i){//高亮当前页页码
+                                pageNum += '<li style="background-color: #66afe9" onclick="favoriteRankByPage('+ i +',\'' + rname +'\',\''+lowerPrice+'\',\''+upperPrice+'\')"><a href="#">' + i + '</a></li>';/*注意rname用引号包围成字符串*/
+                            }else{
+                                pageNum += '<li onclick="favoriteRankByPage(' + i +',\'' + rname +'\',\''+lowerPrice+'\',\''+upperPrice+'\')"><a href="#">' + i + '</a></li>';/*注意rname用引号包围成字符串*/
+                            }
+                        }
+
+                        pageNum +=
+                            '<li class="threeword" onclick="favoriteRankByPage(' + ((data.currentPage+1)<=data.totalPage?(data.currentPage+1):data.totalPage) + ',\'' + rname +'\',\''+lowerPrice+'\',\''+upperPrice+'\')"><a href="javascript:;">下一页</a></li>\n' +
+                            '<li class="threeword" onclick="favoriteRankByPage(' + data.totalPage +',\'' + rname +'\',\''+lowerPrice+'\',\''+upperPrice+'\')"><a href="javascript:;">末页</a></li>';/*注意rname用引号包围成字符串*/
+
+                        $("#pageNum").html(pageNum);
+                    }
+
+
+                    //定位页面到顶部
+                    window.scrollTo(0, 0);
+                });
+            }
+
+        </script>
+    </head>
+    <body>
+    <!--引入头部-->
+    <div id="header"></div>
+        <div class="contant">
+            <div class="shaixuan">
+                <span>线路名称</span>
+                <input type="text" id="rname_id" placeholder="请输入路线名称">
+                <span>金额</span>
+                <!--输入大于0的正整数（若单独输入一个0，则为“”空）-->
+                <input type="text" id="lowerPrice_id" placeholder="0" onkeyup="if(this.value.length==1){this.value=this.value.replace(/[^1-9]/g,'')}else{this.value=this.value.replace(/\D/g,'')}" onafterpaste="if(this.value.length==1){this.value=this.value.replace(/[^1-9]/g,'')}else{this.value=this.value.replace(/\D/g,'')}">
+                ~
+                <!--输入大于0的正整数（若单独输入一个0，则为“”空）-->
+                <input type="text" id="upperPrice_id" placeholder="99999" onkeyup="if(this.value.length==1){this.value=this.value.replace(/[^1-9]/g,'')}else{this.value=this.value.replace(/\D/g,'')}" onafterpaste="if(this.value.length==1){this.value=this.value.replace(/[^1-9]/g,'')}else{this.value=this.value.replace(/\D/g,'')}">
+                <button id="search_id">搜索</button>
+            </div>
+            <div class="list clearfix">
+                <ul id="favoriteRank">
+
+                    <!--收藏排行榜-->
+
+                </ul>
+            </div>
+            <div class="page_num_inf">
+                <i></i> 共
+                <span id="totalPage">0</span>页<span id="totalCount">0</span>条
+            </div>
+            <div class="pageNum">
+                <ul id="pageNum">
+
+                    <!--这里是分页页码条。-->
+
+                </ul>
+            </div>
+        </div>
+    	
+         <!--导入底部-->
+   		 <div id="footer"></div>
+    <!--导入布局js，共享header和footer-->
+    <script type="text/javascript" src="js/include.js"></script>
+    </body>
+</html>

@@ -1,0 +1,115 @@
+<!-- 头部 start -->
+    <header id="header">
+        <script>
+            //jQuery入口函数，待dom文档加载完成后，执行函数体中的内容
+            $(function () {
+                /*
+                    当前登录用户的显示
+                 */
+                $.post("user/currentLoginUser", {}, function (data) {
+                    var msg;
+                    if(data.flag){
+                        //显示当前有用户登录
+                        msg = "欢迎您，" + data.resultObj.username;
+                        //隐藏登录入口
+                        $("#login").remove();
+
+                        //显示退出按钮
+                        $("#exist").show();
+
+                        //显示我的收藏
+                    }else{
+                        //当前用户尚未登录
+                        msg = "<a href='login.html'>您好，请先登录</a>";
+                        //显示登录入口
+                        $("#login").show();
+
+                        //隐藏退出按钮
+                        $("#exist").remove();
+
+                        //隐藏我的收藏
+                        $("#myfavorite").remove();
+                    }
+
+                    $("#msg").html(msg);
+                });
+
+                /**
+                 * 显示分类
+                 */
+                $.post("category/findAll", {}, function (data) {
+                    var category_li = "";
+                    category_li += '<li class="nav-active" id="category_first"><a href="index.html">首页</a></li>';
+                    if(data != null){
+                        for(var i=0; i<data.length; i++){
+                            category_li += '<li "><a href="route_list.html?cid='+ data[i].cid +'">'+ data[i].cname +'</a></li>';
+                        }
+                    }
+                    category_li += '<li><a href="favoriterank.html">收藏排行榜</a></li>';
+
+                    //显示
+                    $("#categroy").html(category_li);
+                });
+
+                /**
+                 *为搜索按钮添加单击事件
+                 */
+                $("#search-button_id").click(function () {
+                    //获取搜索输入框中的线路名称
+                    var rname = $("#rname").val();
+                    //跳转到旅游线路显示列表
+                    location.href = "route_list.html?rname=" + rname;//相对路径
+                });
+            });
+
+
+            
+        </script>
+        <div class="top_banner">
+            <img src="images/top_banner.jpg" alt="">
+        </div>
+        <div class="shortcut">
+            <!-- 未登录状态  -->
+            <div class="login_out">
+                <a href="login.html" id="login">登录</a>
+                <a href="register.html">注册</a>
+            </div>
+            <!-- 登录状态  -->
+            <div class="login">
+            	
+                <span id="msg"></span>
+                <a href="myfavorite.html" id="myfavorite" class="collection">我的收藏</a>
+                <a href="user/exist" id="exist">退出</a>
+            </div>
+        </div>
+        <div class="header_wrap">
+            <div class="topbar">
+                <div class="logo">
+                    <a href="index.html"><img src="images/logo.jpg" width="250" alt=""></a>
+                </div>
+                <div class="search">
+                    <input name="rname" id="rname" type="text" placeholder="请输入路线名称" class="search_input" autocomplete="off">
+                    <a href="javascript:;" id="search-button_id" class="search-button">搜索</a>
+                </div>
+                <div class="hottel">
+                    <div class="hot_pic">
+                        <img src="images/hot_tel.jpg" alt="">
+                    </div>
+                    <div class="hot_tel">
+                        <p class="hot_time">客服热线(9:00-6:00)</p>
+                        <p class="hot_num">400-618-8888</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- 头部 end -->
+     <!-- 首页导航 -->
+    <div class="navitem">
+        <ul class="nav" id="categroy">
+
+            <!--分类列表展示-->
+
+        </ul>
+    </div>
+    

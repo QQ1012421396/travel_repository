@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>飞吧旅游网-登录</title>
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <link rel="stylesheet" type="text/css" href="css/login.css">
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://cdn.bootcss.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://cdn.bootcss.com/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+	<!--导入jquery-->
+	<script src="js/jquery-3.3.1.js"></script>
+	<script type="text/javascript">
+
+        //jQuery入口函数，待dom文档加载完成后，执行函数体中的内容
+		$(function () {
+
+			/**
+			 * 获取Cookie
+			 */
+            //获取cookie前，需要先检查我们需要获取的cookie是否存在，若果不存在，在表单中会显示undefined，为了避免这样，所以先进行验证，不给输入表单项赋值
+            var username = getCookieByName("username");//这里是需要验证的cookie中是否存在该cookieName对应的值
+            var password = getCookieByName("password");//这里是需要验证的cookie中是否存在该cookieName对应的值
+            if(username != null){
+                document.getElementById("username").value=username;//显示Cookie中保存的用户名
+            }
+            if(password != null){
+                document.getElementById("password").value=password;//显示Cookie中保存的密码
+            }
+            if(username!=null && password!=null){
+                //继续勾选记住密码复选框
+                $("#remember_login").prop("checked", "checked");
+			}
+
+
+            /*
+			为表格添加submit事件，当表单提交时，调用所有的校验方法
+			 */
+            $("#loginForm").submit(function () {//当表单有提交事件触发，且回调函数返回true或者没有返回值则提交，如果回调函数返回false则不提交
+                /*
+				1.发送数据到服务器
+				*/
+                if (checkUsername() & checkPassword() & checkCheckCode()) {
+                    //校验通过，发送ajax请求到服务器
+                    $.post("user/login", $(this).serialize(), function (data) {
+                        //处理服务器响应的json数据。格式：{flag:false, msg:"登录失败"}
+                        if (data.flag) {
+                            //登录成功，跳转到首页
+                            location.href = "index.html";
+                        } else {
+                            //登录失败，给出提示信息
+                            $("#msg_error").html(data.errorMsg);
+                            //刷新验证码
+                            $("#changCheckCode").prop("src", "CheckCodeServlet?" + new Date().getTime());
+                            //将窗口滚动到最上方
+                            window.scrollTo(0, 0);
+                        }
+                    });
+                }
+
+                /*
+				2.为了不让页面跳转
+				 */
+                return false;//如果这个方法没有返回值，或者返回为true，则表单提交，如果返回为false，则表单不提交
+            });
+
+            /*
+            * 该函数验证cookieName在cookie中是否出在，传入的是cookie中对应的cookieName，返回的是对应的cookieValue
+            */
+            function getCookieByName(cName)//假如传入的cookieName是userName
+            {
+                var the_cookie = document.cookie;//获取当前请求中的Cookie,本项目中的cookie：userName=admin2; pwd=admin2
+
+                if(the_cookie.length>0){//首先判断是否存在cookie
+                    var cName_start_index = the_cookie.indexOf(cName+"=");//获取"userName="的索引
+                    if(cName_start_index!=-1){//说明该cookie中有userName=存在
+                        cName_start_index = cName_start_index + cName.length +1;//获取userName对应的值的索引（也就是userName=后面的值的的开始索引）
+                        var cName_end_index = the_cookie.indexOf(";", cName_start_index);//获取从userName对应值的开始索引值后面的第一个;结束符的索引
+                        if(cName_end_index == -1){//  ;结束符的索引不存在
+                            cName_end_index = the_cookie.length;//说明是此cookieName对应值的结束索引就是该cookie的总长度
+                        }
+                        return the_cookie.substring(cName_start_index, cName_end_index);//根据cookieName对应值的开始索引和结束索引，进行cookie的截取
+                    }
+                }
+            }
+
+            /*
+			为元素添加blur失去焦点事件，调用所有的校验方法
+			 */
+            $("#username").blur(function () {
+                if(checkUsername()){//合法
+                    $("#username").css("border", "");
+                }else{//不合法，添加一个红色边框
+                    $("#username").css("border", "1px double red");
+                }
+            });
+            $("#password").blur(function () {
+                if(checkPassword()){//合法
+                    $("#password").css("border", "");
+                }else{//不合法，添加一个红色边框
+                    $("#password").css("border", "1px double red");
+                }
+            });
+            $("#checkCode").blur(function () {
+                if(checkCheckCode()){//合法
+                    $("#checkCode").css("border", "");
+                }else{//不合法，添加一个红色边框
+                    $("#checkCode").css("border", "1px double red");
+                }
+            });
+        });
+
+        /**
+         * 校验用户名
+         */
+        function checkUsername() {
+            //获取输入框中的值
+            var username = $("#username").val();
+            //定义正则表达式。请注意在逗号和两个数之间不能有空格。
+            var regExp = /^[a-zA-Z_]\w{3,19}$/;//大小字母或下划线开头，可以包含数字的4-20个字符组成
+
+            //判断，给出提示
+            var flag = regExp.test(username);
+            if(flag){//合法
+                $("#username").css("border", "");
+            }else{//不合法，添加一个红色边框
+                $("#username").css("border", "1px double red");
+            }
+
+            return flag;
+        }
+
+        /**
+         * 校验密码
+         */
+        function checkPassword() {
+            //获取输入框中的值
+            var password = $("#password").val();
+            //定义正则表达式。请注意在逗号和两个数之间不能有空格。
+            var regExp = /^\w{4,20}$/;//大小字母、下划线或数字的4-20个字符组成
+
+            //判断，给出提示
+            var flag = regExp.test(password);
+            if(flag){//合法
+                $("#password").css("border", "");
+            }else{//不合法，添加一个红色边框
+                $("#password").css("border", "1px double red");
+            }
+
+            return flag;
+        }
+
+        /**
+         * 校验验证码
+         */
+        function checkCheckCode() {
+            //获取输入框中的值
+            var checkCode = $("#checkCode").val();
+            //定义正则表达式。请注意在逗号和两个数之间不能有空格。
+            var regExp = /^\S{4}$/;//非空4个字符
+
+            //判断，给出提示
+            var flag = regExp.test(checkCode);
+
+            if(flag){//合法
+                $("#checkCode").css("border", "");
+            }else{//不合法，添加一个红色边框
+                $("#checkCode").css("border", "1px double red");
+            }
+
+            return flag;
+        }
+
+        /**
+         *验证码图片点击切换事件
+         */
+        function changeCheckCode(img) {
+            img.src="CheckCodeServlet?"+new Date().getTime();
+        }
+	</script>
+</head>
+
+<body>
+<!--引入头部-->
+<div id="header"></div>
+    <!-- 头部 end -->
+    <section id="login_wrap">
+        <div class="fullscreen-bg" style="background: url(images/login_bg.png);height: 532px;">
+        	
+        </div>
+        <div class="login-box">
+        	<div class="title">
+        		<img src="images/login_logo.png" alt="">
+        		<span>欢迎登录飞吧旅游账户</span>
+        	</div>
+        	<div class="login_inner">
+				
+				<!--登录错误提示消息-->
+        		<div id="msg_error" class="alert alert-danger" ></div>
+				<form id="loginForm" action="" method="post" accept-charset="utf-8">
+        			<input type="hidden" name="action" value="login"/>
+					<input name="username" id="username" type="text" placeholder="请输入账号" autocomplete="off">
+        			<input name="password" id="password" type="password" placeholder="请输入密码" autocomplete="off">
+        			<div class="verify">
+						<input id="checkCode" name="checkCode" type="text" placeholder="请输入验证码" autocomplete="off">
+						<span><img src="CheckCodeServlet" id="changCheckCode" alt="" onclick="changeCheckCode(this)"></span>
+					</div>
+					<div class="submit_btn">
+        				<button type="submit">登录</button>
+        				<div class="auto_login">
+        					<input type="checkbox" name="remember_login" id="remember_login" class="checkbox">
+        					<span>记住密码</span>
+        				</div>
+        			</div>
+        		</form>
+        		<div class="reg">没有账户？<a href="register.html">立即注册</a></div>
+        	</div>
+        </div>
+    </section>
+    <!--引入尾部-->
+    <div id="footer"></div>
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="js/jquery-1.11.0.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="js/bootstrap.min.js"></script>
+    <!--导入布局js，共享header和footer-->
+    <script type="text/javascript" src="js/include.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>飞吧旅游-搜索</title>
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <link rel="stylesheet" href="css/search.css">
+    <script src="js/jquery-3.3.1.js"></script>
+    <script src="js/getParameter.js"></script>
+    <!--导入布局js，共享header和footer-->
+    <script type="text/javascript" src="js/include.js"></script>
+    <script>
+
+        /**
+         * 查询route表收藏量count前5的旅游路线
+         */
+        function hot() {
+            $.post("route/hot", {}, function (data) {
+                var hot_list = "";
+                for(var i=0; i<data.length; i++){
+                    hot_list +=
+                        '<li>\n' +
+                        '    <div class="left"><a href="route_detail.html?rid='+data[i].rid+'"><img src="'+data[i].rimage+'" alt=""></a></div>\n' +
+                        '    <div class="right">\n' +
+                        '    <p>'+data[i].rname+'</p>\n' +
+                        '    <p>网付价<span>&yen;<span>'+data[i].price+'</span>起</span>\n' +
+                        '    </p>\n' +
+                        '    </div>\n' +
+                        '</li>';
+                }
+
+                //显示热门推荐
+                $("#hot_list").html(hot_list);
+            });
+        }
+
+        //jQuery入口函数，待dom文档加载完成后，执行函数体中的内容
+        $(function () {
+            //获取当前Category的cid。。。。例如：?cid=1
+            // var cid = location.search.split("=")[1];//切割字符串，拿到第二个值
+            var cid = getParameter("cid");
+            //获取rname的参数值
+            var rname = getParameter("rname");
+            // 注意这里的rname参数是来自页面url后跟的参数，需要解码才能变成中文
+            if(rname!="" && rname!=null){//注意这里的rname!="null"这个判断，因为如果搜索输入框的没有任何输入时，后面的分页码中uri后的rname参数值会是"null"
+                //url解码
+                rname = window.decodeURIComponent(rname);
+            }
+
+            //调用load方法，发送ajax请求加载数据，分页（条件）查询数据
+            load(cid, 1, rname);
+
+            //调用hot方法，发送ajax请求加载数据，查询route表收藏量count前5的旅游路线
+            hot();
+        });
+
+        /**
+         * 根据参数，发送ajax请求加载数据，分页查询（条件）查询数据
+         **/
+         function load(cid, currentPage, rname) {
+            $.post("route/pageList", {"cid":cid, "currentPage":currentPage, "rname":rname}, function (data) {
+                /**
+                 * 解析PageBean对象数据，展示到页面上
+                 */
+            // 1.线路列表数据展示
+                var dataListStr = "";
+                for(var i=0; i< data.dataList.length; i++){
+                    dataListStr +=
+                        '<li>\n' +
+                        '                            <div class="img"><img src="'+ data.dataList[i].rimage +'" width="299" alt=""></div>\n' +
+                        '                            <div class="text1">\n' +
+                        '                                <p>' + data.dataList[i].rname + '</p>' +
+                        '                                <p>' + data.dataList[i].routeIntroduce + '</p>\n' +
+                        '                            </div>\n' +
+                        '                            <div class="price">\n' +
+                        '                                <p class="price_num">\n' +
+                        '                                    <span>&yen;</span>\n' +
+                        '                                    <span>' + data.dataList[i].price + '</span>\n' +
+                        '                                    <span>起</span>\n' +
+                        '                                </p>\n' +
+                        '                                <p><a href="route_detail.html?rid=' + data.dataList[i].rid + '">查看详情</a></p>\n' +
+                        '                            </div>\n' +
+                        '                        </li>';
+                }
+
+                $("#route_dataList").html(dataListStr);
+
+                //2. 分页工具条数据展示
+                //2.1 展示总页数
+                $("#totalPage").html(data.totalPage);
+                //2.2 展示总记录数
+                $("#totalCount").html(data.totalCount);
+                //2.3 展示分页页码
+                var startPage;
+                var endPage;
+                if(data.totalPage <=10 && data.totalPage > 0){
+                    startPage = 1;
+                    endPage = data.totalPage;
+                }else if(data.totalPage > 10){
+                    startPage = data.currentPage - 4;
+                    endPage = data.currentPage + 5;
+                    if(startPage < 1){
+                        startPage = 1;
+                        endPage = 10;
+                    }
+                    if(endPage > data.totalPage){
+                        startPage = data.totalPage - 9;
+                        endPage = data.totalPage;
+                    }
+                }
+                //有数据的时候才展示分页条
+                if(data.totalCount > 0){
+                    var pageNum =
+                        '<li onclick="load('+cid+', 1,\'' + rname +'\')"><a href="javascript:;">首页</a></li>' +
+                        '<li class="threeword" onclick="load('+cid+',' + ((data.currentPage-1)>=1?(data.currentPage-1):1) + ',\'' + rname +'\')"><a href="#">上一页</a></li>';/*注意rname用引号包围成字符串*/
+
+                    for(var i= startPage; i<=endPage; i++){
+                        if(data.currentPage == i){//高亮当前页页码
+                            pageNum += '<li style="background-color: #66afe9" onclick="load('+cid+', '+ i +',\'' + rname +'\')"><a href="#">' + i + '</a></li>';/*注意rname用引号包围成字符串*/
+                        }else{
+                            pageNum += '<li onclick="load('+cid+', '+ i +',\'' + rname +'\')"><a href="#">' + i + '</a></li>';/*注意rname用引号包围成字符串*/
+                        }
+                    }
+
+                    pageNum +=
+                        '<li class="threeword" onclick="load('+cid+',' + ((data.currentPage+1)<=data.totalPage?(data.currentPage+1):data.totalPage) + ',\'' + rname +'\')"><a href="javascript:;">下一页</a></li>\n' +
+                        '<li class="threeword" onclick="load('+cid+', '+ data.totalPage +',\'' + rname +'\')"><a href="javascript:;">末页</a></li>';/*注意rname用引号包围成字符串*/
+
+                    $("#pageNum").html(pageNum);
+                }
+
+
+                //定位页面到顶部
+                window.scrollTo(0, 0);
+            });
+
+        }
+    </script>
+</head>
+<body>
+<!--引入头部-->
+    <div id="header"></div>
+    <div class="page_one">
+        <div class="contant">
+            <div class="crumbs">
+                <img src="images/search.png" alt="">
+                <p>飞吧旅行><span id="search_category_cname">搜索结果</span></p>
+            </div>
+            <div class="xinxi clearfix">
+                <div class="left">
+                    <div class="header">
+                        <span>商品信息</span>
+                        <span class="jg">价格</span>
+                    </div>
+                    <ul id="route_dataList">
+
+                        <!--这里是旅游路线列表。-->
+
+                    </ul>
+                    <div class="page_num_inf">
+                        <i></i> 共
+                        <span id="totalPage">0</span>页<span id="totalCount">0</span>条
+                    </div>
+                    <div class="pageNum">
+                        <ul id="pageNum">
+
+                            <!--这里是分页页码条。-->
+
+                        </ul>
+                    </div>
+                </div>
+                <div class="right">
+                    <div class="top">
+                        <div class="hot">HOT</div>
+                        <span>热门推荐</span>
+                    </div>
+                    <ul id="hot_list">
+
+                       <!--热门推荐展示列表 -->
+
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--引入头部-->
+    <div id="footer"></div>
+</body>
+
+</html>
